@@ -1,0 +1,8 @@
+{# Bouton d'action POST protégé. Paramètres : url, label, class, confirm, back, fields #}
+<form method="post" action="{{ url }}" class="inline"
+      {% if confirm is defined and confirm %}data-controller="confirm" data-confirm-message-value="{{ confirm }}" data-action="submit->confirm#submit"{% else %}data-controller="once" data-action="submit->once#submit"{% endif %}>
+    <input type="hidden" name="_token" value="{{ csrf_token('novel_action') }}">
+    {% if back is defined and back %}<input type="hidden" name="_back" value="{{ back }}">{% endif %}
+    {% for name, value in fields|default({}) %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    <button type="submit" class="button {{ class|default('') }}">{{ label }}</button>
+</form>

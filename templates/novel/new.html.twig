@@ -1,0 +1,59 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouveau roman{% endblock %}
+{% block body %}
+<h1>Nouvelle demande de roman</h1>
+<p class="lead">Seule l'idée de départ est indispensable. Tout le reste a une valeur par défaut.
+   <a href="{{ path('novel_new', {exemple: 1}) }}">Préremplir avec un exemple fictif</a>.</p>
+
+{{ form_start(form, {attr: {class: 'card form', 'data-controller': 'once', 'data-action': 'submit->once#submit'}}) }}
+    {{ form_errors(form) }}
+    <fieldset>
+        <legend>L'essentiel</legend>
+        {{ form_row(form.premise) }}
+        <div class="grid-2">
+            {{ form_row(form.genre) }}
+            {{ form_row(form.subgenre) }}
+        </div>
+        <div class="grid-3">
+            {{ form_row(form.chapterCount) }}
+            {{ form_row(form.targetWordsPerChapter) }}
+            {{ form_row(form.budgetDollars) }}
+        </div>
+    </fieldset>
+
+    <details>
+        <summary>Personnaliser davantage (facultatif)</summary>
+        <fieldset>
+            <legend>Histoire</legend>
+            {{ form_row(form.title) }}
+            <div class="grid-2">
+                {{ form_row(form.setting) }}
+                {{ form_row(form.era) }}
+            </div>
+            {{ form_row(form.characters) }}
+        </fieldset>
+        <fieldset>
+            <legend>Style</legend>
+            <div class="grid-2">
+                {{ form_row(form.pointOfView) }}
+                {{ form_row(form.tense) }}
+                {{ form_row(form.mood) }}
+                {{ form_row(form.pace) }}
+                {{ form_row(form.audience) }}
+            </div>
+            <div class="grid-2">
+                {{ form_row(form.themes) }}
+                {{ form_row(form.avoid) }}
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Déroulement</legend>
+            {{ form_row(form.autoContinue) }}
+            {{ form_row(form.autoAccept) }}
+        </fieldset>
+    </details>
+
+    <p><button type="submit" class="button">Enregistrer la demande</button></p>
+    <p class="muted">Aucune génération n'est lancée à cette étape.</p>
+{{ form_end(form) }}
+{% endblock %}

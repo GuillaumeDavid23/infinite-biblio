@@ -1,0 +1,8 @@
+# Consignes de génération versionnées.
+# Pour faire évoluer les consignes : copier v1/ en v2/, modifier, puis changer « current ».
+# La version utilisée est enregistrée sur chaque appel IA (journal des coûts).
+current: v1
+versions:
+  v1:
+    date: '2026-10-09'
+    notes: Première version du laboratoire (plan, chapitre, contrôle, mémoire, correction).

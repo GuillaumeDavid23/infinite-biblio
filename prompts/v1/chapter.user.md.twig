@@ -1,0 +1,51 @@
+Étape : rédaction du chapitre {{ chapter.number }} sur {{ chapterCount }}.
+
+Plan validé (extraits utiles) :
+<plan_valide>
+{{ {
+  'titre': plan.title ?? '',
+  'synopsis': plan.synopsis ?? '',
+  'fin_prevue': plan.ending ?? '',
+  'personnages': plan.characters ?? [],
+  'regles_univers': plan.world_rules ?? [],
+  'guide_de_style': plan.style_guide ?? '',
+  'chapitre_a_ecrire': chapter,
+  'chapitre_suivant_pour_preparer_la_suite': nextChapter
+}|data }}
+</plan_valide>
+
+Préférences du lecteur :
+<demande_lecteur>
+{{ {
+  'point_de_vue': brief.pointOfView ?? '',
+  'temps_narratif': brief.tense ?? '',
+  'ambiance': brief.mood ?? '',
+  'rythme': brief.pace ?? '',
+  'public': brief.audience ?? '',
+  'a_eviter': brief.avoid ?? ''
+}|data }}
+</demande_lecteur>
+
+{% if memory %}
+Mémoire narrative après les chapitres précédents (faits établis à respecter) :
+<memoire>
+{{ memory|data }}
+</memoire>
+{% else %}
+C'est le premier chapitre : aucun fait antérieur.
+{% endif %}
+
+{% if previousExcerpt %}
+Fin du chapitre précédent, pour la continuité immédiate :
+<texte>
+{{ previousExcerpt }}
+</texte>
+{% endif %}
+
+Consignes :
+- Écris uniquement le chapitre {{ chapter.number }}, en couvrant son objectif, ses événements et ses révélations, et termine dans l'état attendu.
+- Ne révèle pas d'éléments prévus pour les chapitres suivants.
+- Respecte la mémoire : un objet perdu ne réapparaît pas sans explication, un personnage ne sait que ce qu'il a appris, les déplacements sont plausibles.
+- Garde le point de vue et le temps narratif demandés du début à la fin.
+- Vise environ {{ targetWords }} mots, sans remplissage.
+- Commence par le titre du chapitre sur une ligne seule, précédé de « # », puis le texte en paragraphes séparés par une ligne vide. Pas de commentaire avant ou après.

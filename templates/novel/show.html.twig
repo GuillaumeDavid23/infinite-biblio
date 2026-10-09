@@ -1,0 +1,246 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ novel.title }}{% endblock %}
+{% set token_url = path('novel_show', {id: novel.id}) %}
+{% block body %}
+<div data-controller="refresh"
+     data-refresh-url-value="{{ path('novel_state', {id: novel.id}) }}"
+     data-refresh-fingerprint-value="{{ fingerprint }}"
+     data-refresh-active-value="{{ activeJob ? 'true' : 'false' }}">
+
+<p class="crumbs"><a href="{{ path('novel_index') }}">Mes romans</a> ›</p>
+<h1>{{ novel.title }} <span class="badge status-{{ novel.status.value }}">{{ novel.status.label }}</span></h1>
+<p class="muted">{{ novel.brief.genre ?? '' }}{% if novel.brief.subgenre ?? null %} · {{ novel.brief.subgenre }}{% endif %} · {{ novel.chapterCount }} chapitres d'environ {{ novel.targetWordsPerChapter }} mots</p>
+
+{# --- Parcours ------------------------------------------------------------ #}
+{% set s = novel.status.value %}
+<ol class="steps">
+    <li class="done">Demande</li>
+    <li class="{{ novel.plan ? 'done' : (s == 'planning' ? 'current' : '') }}">Plan proposé</li>
+    <li class="{{ novel.planValidated ? 'done' : (s == 'plan_ready' ? 'current' : '') }}">Plan validé</li>
+    <li class="{{ s == 'completed' ? 'done' : (novel.planValidated ? 'current' : '') }}">Chapitres ({{ novel.countAcceptedChapters }}/{{ novel.chapterCount }})</li>
+    <li class="{{ s == 'completed' ? 'current' : '' }}">Lecture et export</li>
+</ol>
+
+{# --- Prochaine action ---------------------------------------------------- #}
+<section class="card next">
+    <h2>Prochaine action</h2>
+    {% if novel.status.value == 'paused' %}
+        <div class="flash flash-{{ novel.pauseReason and novel.pauseReason.value == 'error' ? 'error' : 'info' }}">
+            <strong>{{ novel.pauseReason ? novel.pauseReason.label : 'En pause' }}.</strong> {{ novel.pauseMessage }}
+        </div>
+    {% endif %}
+
+    {% if activeJob %}
+        <p class="working"><span class="spinner" aria-hidden="true"></span>
+            En cours : <strong>{{ activeJob.step.label }}</strong>{% if activeJob.chapterNumber %} (chapitre {{ activeJob.chapterNumber }}){% endif %}
+            — {{ activeJob.status.label|lower }}, tentative {{ max(activeJob.attempts, 1) }} sur {{ activeJob.maxAttempts }}.
+            La page se met à jour toute seule.</p>
+        {% if novel.pauseRequested %}
+            <p class="muted">Interruption demandée : la génération s'arrêtera après cette étape.</p>
+        {% else %}
+            {{ include('_partials/action.html.twig', {url: path('novel_pause', {id: novel.id}), label: 'Interrompre après l\'étape en cours', class: 'secondary'}) }}
+        {% endif %}
+        <p class="muted small">Un appel déjà envoyé à l'IA ne peut pas être annulé : son coût reste dû, même si vous interrompez.
+            Si rien ne bouge depuis longtemps (traitement arrêté), utilisez « Reprendre ».</p>
+        {{ include('_partials/action.html.twig', {url: path('novel_resume', {id: novel.id}), label: 'Reprendre', class: 'ghost'}) }}
+    {% elseif s == 'draft' %}
+        <p>Première étape : l'IA reformule votre demande et propose un synopsis, des personnages, des règles d'univers et un plan par chapitre. Rien n'est rédigé avant votre validation.</p>
+        {{ include('_partials/action.html.twig', {url: path('novel_plan_generate', {id: novel.id}), label: 'Générer la proposition d\'histoire et le plan', confirm: 'Lancer la génération du plan ? (coût maximal estimé visible dans la section Coûts)'}) }}
+    {% elseif s == 'planning' %}
+        <p>Le plan est en préparation.</p>
+        {{ include('_partials/action.html.twig', {url: path('novel_resume', {id: novel.id}), label: 'Reprendre'}) }}
+    {% elseif s == 'plan_ready' %}
+        <p>Relisez la proposition ci-dessous. Vous pouvez la modifier librement avant de la valider.</p>
+        <a class="button secondary" href="{{ path('novel_plan_edit', {id: novel.id}) }}">Modifier le plan</a>
+        {{ include('_partials/action.html.twig', {url: path('novel_plan_validate', {id: novel.id}), label: 'Valider le plan', confirm: 'Valider ce plan ? Il servira de référence pour la rédaction.'}) }}
+        {{ include('_partials/action.html.twig', {url: path('novel_plan_generate', {id: novel.id}), label: 'Proposer un autre plan', class: 'ghost', confirm: 'Générer une nouvelle proposition ? Le plan actuel sera remplacé (son coût reste compté).'}) }}
+    {% elseif s == 'writing' %}
+        {% set waiting = novel.chapters|filter(c => c.status.value != 'accepted')|first %}
+        {% if not waiting %}
+            <p>Tous les chapitres sont acceptés.</p>
+            {{ include('_partials/action.html.twig', {url: path('novel_generate', {id: novel.id}), label: 'Finaliser'}) }}
+        {% elseif waiting.status.value == 'planned' %}
+            <p>Prochain chapitre à rédiger : <strong>{{ waiting.number }}. {{ waiting.title }}</strong>.
+               {% if novel.autoContinue %}Les étapes suivantes s'enchaîneront ensuite automatiquement{% if not novel.autoAccept %}, jusqu'à votre relecture{% endif %}.{% endif %}</p>
+            {{ include('_partials/action.html.twig', {url: path('novel_generate', {id: novel.id}), label: 'Générer le chapitre ' ~ waiting.number}) }}
+        {% elseif waiting.status.value == 'to_review' and waiting.currentVersionReviewed %}
+            <p>Le chapitre <strong>{{ waiting.number }}</strong> attend votre relecture.</p>
+            <a class="button" href="{{ path('chapter_show', {id: novel.id, number: waiting.number}) }}">Relire le chapitre {{ waiting.number }}</a>
+        {% elseif waiting.status.value == 'to_recheck' %}
+            <p>Le chapitre <strong>{{ waiting.number }}</strong> est à revérifier car un chapitre précédent a changé.</p>
+            <a class="button" href="{{ path('chapter_show', {id: novel.id, number: waiting.number}) }}">Ouvrir le chapitre {{ waiting.number }}</a>
+        {% else %}
+            <p>Étape suivante prête.</p>
+            {{ include('_partials/action.html.twig', {url: path('novel_resume', {id: novel.id}), label: 'Continuer'}) }}
+        {% endif %}
+    {% elseif s == 'paused' %}
+        {{ include('_partials/action.html.twig', {url: path('novel_resume', {id: novel.id}), label: 'Reprendre', confirm: novel.pauseReason and novel.pauseReason.value == 'budget' ? 'Avez-vous augmenté le budget (section Réglages) ? Sinon la génération se remettra en pause.' : ''}) }}
+        <p class="muted small">La reprise ne refait pas ce qui est déjà livré : seule l'étape interrompue est relancée.</p>
+    {% elseif s == 'completed' %}
+        <p>Le roman est terminé. Vous pouvez le lire chapitre par chapitre, l'exporter, ou corriger des passages.</p>
+    {% endif %}
+
+    {% if novel.chapters|filter(c => c.currentVersion)|length > 0 %}
+        <p class="exports">Exporter :
+            <a class="button secondary small" href="{{ path('novel_export_md', {id: novel.id}) }}">Markdown</a>
+            <a class="button secondary small" href="{{ path('novel_export_epub', {id: novel.id}) }}">EPUB</a>
+        </p>
+    {% endif %}
+</section>
+
+{# --- Chapitres ----------------------------------------------------------- #}
+{% if novel.chapters|length > 0 %}
+<section id="chapitres" class="card">
+    <h2>Chapitres</h2>
+    <table class="table">
+        <thead><tr><th>N°</th><th>Titre</th><th>État</th><th>Mots</th><th>Versions</th><th>Alertes ouvertes</th></tr></thead>
+        <tbody>
+        {% for c in novel.chapters %}
+            {% set open = issues|filter(i => i.chapter == c and i.status.value == 'open' and c.currentVersion and i.versionNumber == c.currentVersion.number)|length %}
+            <tr>
+                <td>{{ c.number }}</td>
+                <td>{% if c.currentVersion %}<a href="{{ path('chapter_show', {id: novel.id, number: c.number}) }}">{{ c.title }}</a>{% else %}{{ c.title }}{% endif %}</td>
+                <td><span class="badge chapter-{{ c.status.value }}">{{ c.status.label }}</span>
+                    {% if c.status.value == 'to_review' and not c.currentVersionReviewed %}<span class="muted small">(contrôle à venir)</span>{% endif %}</td>
+                <td>{{ c.currentVersion ? c.currentVersion.wordCount|num : '—' }}</td>
+                <td>{{ c.versions|length }}</td>
+                <td>{% if open > 0 %}<span class="badge sev-warning">{{ open }}</span>{% else %}—{% endif %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+{# --- Plan ---------------------------------------------------------------- #}
+{% if novel.plan %}
+<section id="plan" class="card">
+    <h2>Proposition d'histoire et plan {% if novel.planValidated %}<span class="badge chapter-accepted">validé le {{ novel.planValidatedAt|date('d/m/Y') }}</span>{% endif %}</h2>
+    {% set p = novel.plan %}
+    <h3>Votre demande reformulée</h3><p>{{ p.reformulation }}</p>
+    <h3>Synopsis</h3><p>{{ p.synopsis }}</p>
+    <div class="grid-2">
+        <div><h3>Enjeux</h3><p>{{ p.stakes }}</p></div>
+        <div><h3>Fin prévue</h3><p>{{ p.ending }}</p></div>
+    </div>
+    <h3>Personnages</h3>
+    <ul>{% for ch in p.characters %}<li><strong>{{ ch.name }}</strong> ({{ ch.role }}) : {{ ch.description }} <em>Objectif : {{ ch.goal }}</em></li>{% endfor %}</ul>
+    <h3>Règles de l'univers</h3>
+    <ul>{% for r in p.world_rules %}<li>{{ r }}</li>{% endfor %}</ul>
+    <h3>Guide de style</h3><p>{{ p.style_guide }}</p>
+    <h3>Plan par chapitre</h3>
+    {% for c in p.chapters %}
+        <details class="plan-chapter">
+            <summary>{{ c.number }}. {{ c.title }}</summary>
+            <p><strong>Objectif :</strong> {{ c.objective }}</p>
+            <p><strong>Événements :</strong></p><ul>{% for e in c.events %}<li>{{ e }}</li>{% endfor %}</ul>
+            {% if c.revelations is not empty %}<p><strong>Révélations :</strong></p><ul>{% for r in c.revelations %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+            <p><strong>État attendu à la fin :</strong> {{ c.end_state }}</p>
+        </details>
+    {% endfor %}
+</section>
+{% endif %}
+
+{# --- Alertes ------------------------------------------------------------- #}
+{% if issues is not empty %}
+<section id="alertes" class="card">
+    <h2>Alertes de cohérence <span class="muted small">({{ openIssues }} ouvertes)</span></h2>
+    <p class="muted small">Ces alertes sont une aide à la relecture produite par l'IA ou par un contrôle automatique simple. Elles ne garantissent pas la qualité du texte.</p>
+    <ul class="issues">
+    {% for i in issues|filter(i => i.status.value == 'open')|slice(0, 12) %}
+        <li class="issue sev-{{ i.severity.value }}">
+            <a href="{{ path('chapter_show', {id: novel.id, number: i.chapter.number}) }}#alertes">Chapitre {{ i.chapter.number }}</a>
+            (v{{ i.versionNumber }}) · <strong>{{ i.severity.label }}</strong> · {{ i.type.label }} : {{ i.description }}
+        </li>
+    {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{# --- Mémoire narrative --------------------------------------------------- #}
+{% if memory %}
+<section id="memoire" class="card">
+    <h2>Mémoire narrative <span class="muted small">(après le chapitre {{ memory.afterChapter }})</span></h2>
+    {{ include('novel/_memory.html.twig', {data: memory.data}) }}
+</section>
+{% endif %}
+
+{# --- Coûts --------------------------------------------------------------- #}
+<section id="couts" class="card">
+    <h2>Coûts</h2>
+    <div class="stats">
+        <div><span class="label">Dépense réelle constatée</span><span class="value">{{ costs.real|usd }}</span></div>
+        <div><span class="label">Coût simulé (fictif)</span><span class="value muted">{{ costs.simulated|usd }}</span></div>
+        <div><span class="label">Budget maximal</span><span class="value">{{ costs.budget|usd(2) }}</span></div>
+        <div><span class="label">Reste avant pause</span><span class="value">{{ costs.remainingBudget|usd }}</span></div>
+    </div>
+    <p class="small">Estimation <strong>avant</strong> génération des étapes restantes : au plus {{ costs.remainingCeiling|usd }} pour la partie « texte produit » (limites de sortie), hors texte envoyé.
+        C'est un plafond, pas une prévision : la consommation constatée est en général bien inférieure.</p>
+    {% if costs.unknown > 0 %}<p class="flash flash-error small">{{ costs.unknown }} appel(s) sans consommation connue : leur coût n'est pas inclus.</p>{% endif %}
+    <p><a href="{{ path('novel_costs', {id: novel.id}) }}">Voir le détail de chaque appel</a> ({{ costs.calls|length }} appels, dont {{ costs.errors }} en erreur ou interrompus, tous comptés).</p>
+</section>
+
+{# --- Réglages ------------------------------------------------------------ #}
+<section id="reglages" class="card">
+    <h2>Réglages</h2>
+    <form method="post" action="{{ path('novel_settings', {id: novel.id}) }}" class="form">
+        <input type="hidden" name="_token" value="{{ csrf_token('novel_action') }}">
+        <label>Budget maximal (dollars US)
+            <input type="text" name="budget" value="{{ (costs.budget / 1000000000000)|number_format(2, '.', '') }}" inputmode="decimal">
+        </label>
+        <label class="check"><input type="checkbox" name="autoContinue" value="1" {{ novel.autoContinue ? 'checked' }}> Enchaîner automatiquement les étapes</label>
+        <label class="check"><input type="checkbox" name="autoAccept" value="1" {{ novel.autoAccept ? 'checked' }}> Accepter automatiquement les chapitres sans alerte bloquante</label>
+        <button type="submit" class="button secondary">Enregistrer</button>
+    </form>
+</section>
+
+{# --- Appréciation -------------------------------------------------------- #}
+<section id="appreciation" class="card">
+    <h2>Votre appréciation</h2>
+    <form method="post" action="{{ path('novel_review', {id: novel.id}) }}" class="form">
+        <input type="hidden" name="_token" value="{{ csrf_token('novel_action') }}">
+        <div class="grid-3">
+            {% for field, label in {style: 'Style', dialogues: 'Dialogues', coherence: 'Cohérence'} %}
+                <label>{{ label }}
+                    <select name="{{ field }}">{% for n in 1..5 %}<option value="{{ n }}" {{ n == 3 ? 'selected' }}>{{ n }} / 5</option>{% endfor %}</select>
+                </label>
+            {% endfor %}
+        </div>
+        <label>Corrections nécessaires<textarea name="correctionsNeeded" rows="2"></textarea></label>
+        <label>Commentaire libre<textarea name="comment" rows="2"></textarea></label>
+        <button type="submit" class="button secondary">Enregistrer l'appréciation</button>
+    </form>
+    {% for r in reviews %}
+        <div class="review">
+            <strong>{{ r.createdAt|date('d/m/Y H:i') }}</strong> · Style {{ r.style }}/5 · Dialogues {{ r.dialogues }}/5 · Cohérence {{ r.coherence }}/5
+            {% if r.correctionsNeeded %}<br>Corrections : {{ r.correctionsNeeded }}{% endif %}
+            {% if r.comment %}<br>{{ r.comment }}{% endif %}
+        </div>
+    {% endfor %}
+</section>
+
+{# --- Historique des étapes ----------------------------------------------- #}
+{% if recentJobs is not empty %}
+<section class="card">
+    <h2>Dernières étapes</h2>
+    <table class="table small">
+        <thead><tr><th>Étape</th><th>Chapitre</th><th>État</th><th>Tentatives</th><th>Dernière erreur</th><th>Date</th></tr></thead>
+        <tbody>
+        {% for j in recentJobs %}
+            <tr><td>{{ j.step.label }}</td><td>{{ j.chapterNumber ?: '—' }}</td><td>{{ j.status.label }}</td><td>{{ j.attempts }}/{{ j.maxAttempts }}</td><td class="muted">{{ j.lastError ?: '—' }}</td><td class="muted">{{ j.updatedAt|date('d/m H:i:s') }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+<section class="card">
+    <h2>Demande d'origine</h2>
+    <dl class="brief">
+        {% for key, label in {premise: 'Idée de départ', setting: 'Univers', era: 'Époque', characters: 'Personnages', pointOfView: 'Point de vue', tense: 'Temps', mood: 'Ambiance', pace: 'Rythme', audience: 'Public', themes: 'Thèmes', avoid: 'À éviter'} %}
+            {% if novel.brief[key] is defined and novel.brief[key] %}<dt>{{ label }}</dt><dd>{{ novel.brief[key]|nl2br }}</dd>{% endif %}
+        {% endfor %}
+    </dl>
+</section>
+</div>
+{% endblock %}

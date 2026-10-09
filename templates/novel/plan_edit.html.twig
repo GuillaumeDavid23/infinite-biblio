@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier le plan{% endblock %}
+{% block body %}
+<p class="crumbs"><a href="{{ path('novel_index') }}">Mes romans</a> › <a href="{{ path('novel_show', {id: novel.id}) }}">{{ novel.title }}</a> ›</p>
+<h1>Modifier la proposition</h1>
+<p class="lead">Modifiez ce que vous voulez, puis enregistrez. Pour les listes, écrivez un élément par ligne.</p>
+<form method="post" class="card form" data-controller="once" data-action="submit->once#submit">
+    <input type="hidden" name="_token" value="{{ csrf_token('novel_action') }}">
+    <label>Titre<input type="text" name="title" value="{{ novel.title }}"></label>
+    <label>Demande reformulée<textarea name="plan[reformulation]" rows="3">{{ plan.reformulation }}</textarea></label>
+    <label>Synopsis<textarea name="plan[synopsis]" rows="6">{{ plan.synopsis }}</textarea></label>
+    <div class="grid-2">
+        <label>Enjeux<textarea name="plan[stakes]" rows="3">{{ plan.stakes }}</textarea></label>
+        <label>Fin prévue<textarea name="plan[ending]" rows="3">{{ plan.ending }}</textarea></label>
+    </div>
+    <label>Règles de l'univers (une par ligne)<textarea name="plan[world_rules]" rows="4">{{ plan.world_rules|join("\n") }}</textarea></label>
+    <label>Guide de style<textarea name="plan[style_guide]" rows="3">{{ plan.style_guide }}</textarea></label>
+
+    <h2>Personnages</h2>
+    {% for ch in plan.characters|merge([{name: '', role: '', description: '', goal: ''}]) %}
+        <fieldset class="grid-2">
+            <legend>{{ ch.name ?: 'Ajouter un personnage (facultatif)' }}</legend>
+            <label>Nom<input type="text" name="plan[characters][{{ loop.index0 }}][name]" value="{{ ch.name }}"></label>
+            <label>Rôle<input type="text" name="plan[characters][{{ loop.index0 }}][role]" value="{{ ch.role }}"></label>
+            <label>Description<textarea name="plan[characters][{{ loop.index0 }}][description]" rows="2">{{ ch.description }}</textarea></label>
+            <label>Objectif<textarea name="plan[characters][{{ loop.index0 }}][goal]" rows="2">{{ ch.goal }}</textarea></label>
+        </fieldset>
+    {% endfor %}
+    <p class="muted small">Pour retirer un personnage, videz son nom.</p>
+
+    <h2>Chapitres</h2>
+    {% for c in plan.chapters %}
+        <fieldset>
+            <legend>Chapitre {{ c.number }}</legend>
+            <label>Titre<input type="text" name="plan[chapters][{{ c.number }}][title]" value="{{ c.title }}"></label>
+            <label>Objectif<textarea name="plan[chapters][{{ c.number }}][objective]" rows="2">{{ c.objective }}</textarea></label>
+            <div class="grid-2">
+                <label>Événements (un par ligne)<textarea name="plan[chapters][{{ c.number }}][events]" rows="4">{{ c.events|join("\n") }}</textarea></label>
+                <label>Révélations (une par ligne)<textarea name="plan[chapters][{{ c.number }}][revelations]" rows="4">{{ c.revelations|join("\n") }}</textarea></label>
+            </div>
+            <label>État attendu à la fin du chapitre<textarea name="plan[chapters][{{ c.number }}][end_state]" rows="2">{{ c.end_state }}</textarea></label>
+        </fieldset>
+    {% endfor %}
+    <p><button type="submit" class="button">Enregistrer le plan</button> <a href="{{ path('novel_show', {id: novel.id}) }}">Annuler</a></p>
+</form>
+{% endblock %}

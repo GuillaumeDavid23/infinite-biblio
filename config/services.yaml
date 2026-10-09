@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+parameters:
+    app.max_chapters: '%env(int:MAX_CHAPTERS)%'
+    app.default_budget_usd: '%env(DEFAULT_NOVEL_BUDGET_USD)%'
+    app.long_novel_words: '%env(int:LONG_NOVEL_WORDS)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        bind:
+            int $maxAttempts: '%env(int:JOB_MAX_ATTEMPTS)%'
+            int $staleAfterSeconds: '%env(int:JOB_STALE_SECONDS)%'
+            int $retryDelayMs: '%env(int:JOB_RETRY_DELAY_MS)%'
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+            - '../src/Entity/'
+            - '../src/Enum/'
+            - '../src/Model/'
+            - '../src/Message/'
+            - '../src/Ai/Provider/'
+            - '../src/Export/BookContent.php'
+
+    # --- Fournisseur d'IA -------------------------------------------------
+    # AI_PROVIDER=simulation (par défaut) : aucun appel payant.
+    # AI_PROVIDER=anthropic ET AI_REAL_CALLS_ENABLED=1 : appels facturés sur le compte API Anthropic.
+    App\Ai\Provider\TextGenerationProvider:
+        factory: ['App\Ai\Provider\ProviderFactory', 'create']
+        arguments:
+            $provider: '%env(AI_PROVIDER)%'
+            $realCallsEnabled: '%env(bool:AI_REAL_CALLS_ENABLED)%'
+            $apiKey: '%env(ANTHROPIC_API_KEY)%'
+            $model: '%env(ANTHROPIC_MODEL)%'
+            $effort: '%env(ANTHROPIC_EFFORT)%'
+            $timeoutSeconds: '%env(float:ANTHROPIC_TIMEOUT_SECONDS)%'
+            $simulatedDelayMs: '%env(int:SIMULATED_DELAY_MS)%'
+
+    App\Ai\Pricing\PricingCatalog:
+        arguments:
+            $pricingFile: '%kernel.project_dir%/config/ai/pricing.yaml'
+
+    App\Ai\Prompt\PromptLibrary:
+        arguments:
+            $promptsDir: '%kernel.project_dir%/prompts'
+
+    App\Generation\GenerationSteps:
+        arguments:
+            $maxOutputTokens:
+                plan: '%env(int:AI_MAX_OUTPUT_TOKENS_PLAN)%'
+                chapter_write: '%env(int:AI_MAX_OUTPUT_TOKENS_CHAPTER)%'
+                chapter_review: '%env(int:AI_MAX_OUTPUT_TOKENS_REVIEW)%'
+                memory_update: '%env(int:AI_MAX_OUTPUT_TOKENS_MEMORY)%'
+                correction: '%env(int:AI_MAX_OUTPUT_TOKENS_CORRECTION)%'
+
+when@test:
+    services:
+        # Le simulateur est partagé et public en test pour programmer des défaillances.
+        App\Ai\Provider\TextGenerationProvider:
+            class: App\Ai\Provider\SimulatedProvider
+            public: true
+            factory: null
+            arguments:
+                $pricingModel: '%env(ANTHROPIC_MODEL)%'
+                $delayMs: 0

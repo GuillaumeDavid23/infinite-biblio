@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "reformulation", "synopsis", "stakes", "ending", "characters", "world_rules", "style_guide", "chapters"],
+  "properties": {
+    "title": {"type": "string"},
+    "reformulation": {"type": "string"},
+    "synopsis": {"type": "string"},
+    "stakes": {"type": "string"},
+    "ending": {"type": "string"},
+    "characters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "role", "description", "goal"],
+        "properties": {
+          "name": {"type": "string"},
+          "role": {"type": "string"},
+          "description": {"type": "string"},
+          "goal": {"type": "string"}
+        }
+      }
+    },
+    "world_rules": {"type": "array", "items": {"type": "string"}},
+    "style_guide": {"type": "string"},
+    "chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["number", "title", "objective", "events", "revelations", "end_state"],
+        "properties": {
+          "number": {"type": "integer"},
+          "title": {"type": "string"},
+          "objective": {"type": "string"},
+          "events": {"type": "array", "items": {"type": "string"}},
+          "revelations": {"type": "array", "items": {"type": "string"}},
+          "end_state": {"type": "string"}
+        }
+      }
+    }
+  }
+}

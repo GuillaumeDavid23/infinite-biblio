@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "issues"],
+  "properties": {
+    "summary": {"type": "string"},
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "severity", "description", "excerpt", "suggestion"],
+        "properties": {
+          "type": {"type": "string", "enum": ["contradiction", "repetition", "plan_deviation", "point_of_view", "continuity", "other"]},
+          "severity": {"type": "string", "enum": ["info", "warning", "critical"]},
+          "description": {"type": "string"},
+          "excerpt": {"type": "string"},
+          "suggestion": {"type": "string"}
+        }
+      }
+    }
+  }
+}

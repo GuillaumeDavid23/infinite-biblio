@@ -1,0 +1,57 @@
+# Environnement local du laboratoire (Windows + WSL 2, macOS ou Linux).
+# Lancement : docker compose up -d --build   puis   http://localhost:8000
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "app", "-U", "app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - database_data:/var/lib/postgresql/data:rw
+    # Accessible uniquement depuis la machine locale (outils SQL).
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  # Interface web.
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["php", "-S", "0.0.0.0:8000", "-t", "public", "public/index.php"]
+    environment:
+      DATABASE_URL: "postgresql://app:app@database:5432/app?serverVersion=16&charset=utf8"
+      PREPARE_PROJECT: "1"
+    volumes:
+      - .:/app
+    # Lié à 127.0.0.1 : le prototype n'est pas exposé sur le réseau.
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      database:
+        condition: service_healthy
+
+  # Traitement des générations en arrière-plan (file Messenger en base de données).
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=256M", "-vv"]
+    environment:
+      DATABASE_URL: "postgresql://app:app@database:5432/app?serverVersion=16&charset=utf8"
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      app:
+        condition: service_started
+
+volumes:
+  database_data:

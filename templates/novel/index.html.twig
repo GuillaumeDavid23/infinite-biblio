@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mes romans{% endblock %}
+{% block body %}
+<h1>Mes projets de romans</h1>
+{% if rows is empty %}
+    <div class="card empty">
+        <p>Aucun roman pour l'instant.</p>
+        <p><a class="button" href="{{ path('novel_new', {exemple: 1}) }}">Essayer avec un exemple prérempli</a>
+           <a class="button secondary" href="{{ path('novel_new') }}">Partir d'une page blanche</a></p>
+    </div>
+{% else %}
+    <table class="table">
+        <thead><tr><th>Titre</th><th>État</th><th>Chapitres acceptés</th><th>Mots</th><th>Coût réel</th><th>Coût simulé</th><th>Mis à jour</th></tr></thead>
+        <tbody>
+        {% for row in rows %}
+            {% set n = row.novel %}
+            <tr>
+                <td><a href="{{ path('novel_show', {id: n.id}) }}">{{ n.title }}</a></td>
+                <td><span class="badge status-{{ n.status.value }}">{{ n.status.label }}</span></td>
+                <td>{{ n.countAcceptedChapters }} / {{ n.chapterCount }}</td>
+                <td>{{ n.totalWordCount|num }}</td>
+                <td>{{ row.real|usd }}</td>
+                <td class="muted">{{ row.simulated|usd }}</td>
+                <td class="muted">{{ n.updatedAt|date('d/m/Y H:i') }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

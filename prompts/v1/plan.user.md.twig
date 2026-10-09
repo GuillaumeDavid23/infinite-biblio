@@ -1,0 +1,20 @@
+Étape : préparation du roman (aucune rédaction de chapitre à ce stade).
+
+Voici la demande du lecteur :
+<demande_lecteur>
+{{ brief|data }}
+</demande_lecteur>
+
+Travail demandé :
+1. Reformule la demande en quelques phrases, en levant les ambiguïtés par des choix raisonnables.
+2. Propose un titre, un synopsis, les enjeux principaux et la fin prévue.
+3. Crée les fiches des personnages principaux (nom, rôle, description, objectif) et les règles de l'univers à ne jamais enfreindre.
+4. Rédige un court guide de style (point de vue, temps narratif, ton, rythme, registre des dialogues) conforme à la demande.
+5. Construis un plan de exactement {{ brief.chapterCount }} chapitres. Pour chacun : titre, objectif, événements, révélations, et état attendu à la fin du chapitre (où sont les personnages, ce qu'ils savent, ce qui a changé).
+
+Contraintes :
+- Respecte les thèmes souhaités et évite strictement les éléments à éviter.
+- Chaque chapitre vise environ {{ brief.targetWordsPerChapter }} mots : prévois assez de matière, sans surcharger.
+- Le plan doit permettre une fin satisfaisante au dernier chapitre.
+
+Réponds uniquement avec l'objet JSON demandé.

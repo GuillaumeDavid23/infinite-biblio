@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}Laboratoire{% endblock %} · Bibliothèque infinie</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>📚</text></svg>">
+        {% block javascripts %}{{ importmap('app') }}{% endblock %}
+    </head>
+    <body>
+        <header class="topbar">
+            <a class="brand" href="{{ path('novel_index') }}">📚 Bibliothèque infinie <small>laboratoire</small></a>
+            <nav>
+                <a href="{{ path('novel_index') }}">Mes romans</a>
+                <a href="{{ path('novel_new') }}" class="button small">Nouveau roman</a>
+            </nav>
+        </header>
+        {% if ai_mode.simulated %}
+            <div class="mode mode-sim">Mode simulation : aucun appel payant. Les textes sont factices et marqués [SIMULATION], les coûts affichés sont fictifs.</div>
+        {% else %}
+            <div class="mode mode-real">Appels réels activés ({{ ai_mode.model }}) : chaque génération est facturée sur le compte API Anthropic.</div>
+        {% endif %}
+        <main>
+            {% for type, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="flash flash-{{ type }}" role="status">{{ message }}</div>
+                {% endfor %}
+            {% endfor %}
+            {% block body %}{% endblock %}
+        </main>
+        <footer>Prototype à usage local. Ne pas exposer sur Internet sans protection.</footer>
+    </body>
+</html>

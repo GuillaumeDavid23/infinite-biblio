@@ -1,0 +1,25 @@
+Étape : correction ciblée d'un passage du chapitre {{ chapterNumber }}.
+
+Motif de la correction, donné par le relecteur humain :
+<demande_lecteur>
+{{ reason|data }}
+</demande_lecteur>
+
+Passage à réécrire (il sera remplacé tel quel dans le chapitre) :
+<passage>
+{{ passage }}
+</passage>
+
+Contexte : texte complet du chapitre, à ne pas réécrire :
+<texte>
+{{ text }}
+</texte>
+
+{% if memory %}
+Faits établis à respecter :
+<memoire>
+{{ memory|data }}
+</memoire>
+{% endif %}
+
+Consignes : réécris uniquement le passage pour répondre au motif, dans le même style, le même point de vue et le même temps narratif, en gardant les transitions avec ce qui précède et ce qui suit. Ne modifie pas les faits validés ; si le motif l'exige, explique-le dans « explanation ». Réponds uniquement avec l'objet JSON demandé.

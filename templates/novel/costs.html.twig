@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+{% block title %}Coûts · {{ novel.title }}{% endblock %}
+{% block body %}
+<p class="crumbs"><a href="{{ path('novel_index') }}">Mes romans</a> › <a href="{{ path('novel_show', {id: novel.id}) }}">{{ novel.title }}</a> ›</p>
+<h1>Détail des coûts</h1>
+
+<div class="stats">
+    <div><span class="label">Dépense réelle constatée</span><span class="value">{{ costs.real|usd }}</span></div>
+    <div><span class="label">Coût simulé (fictif)</span><span class="value muted">{{ costs.simulated|usd }}</span></div>
+    <div><span class="label">Budget maximal</span><span class="value">{{ costs.budget|usd(2) }}</span></div>
+    <div><span class="label">Appels</span><span class="value">{{ costs.calls|length }}</span></div>
+</div>
+
+<section class="card">
+    <h2>Comment lire ces chiffres</h2>
+    <ul class="small">
+        <li><strong>Constaté</strong> : calculé à partir de la consommation renvoyée par l'API pour chaque appel (tokens d'entrée, de sortie, lecture et écriture en cache), multipliée par la grille tarifaire datée.</li>
+        <li><strong>Estimation</strong> : avant chaque appel, l'application mesure le texte envoyé et réserve le coût maximal possible (sortie maximale autorisée). Si ce maximal dépasse le budget restant, l'appel n'est pas envoyé et le roman passe en pause.</li>
+        <li>Un appel déjà envoyé ne peut pas être arrêté au centime près : il est facturé selon ce que le modèle a produit, dans la limite de sortie fixée.</li>
+        <li>Tous les appels sont comptés : brouillons remplacés, corrections abandonnées, erreurs (quand l'API a renvoyé une consommation).</li>
+        <li>Les montants « simulés » sont fictifs et ne correspondent à aucune dépense.</li>
+    </ul>
+    {% if costs.price %}
+        <p class="small">Grille utilisée : <code>{{ costs.price.reference }}</code> ({{ costs.price.source }}) —
+            entrée {{ (costs.price.inputMicro / 1000000)|number_format(2, ',', ' ') }} $,
+            sortie {{ (costs.price.outputMicro / 1000000)|number_format(2, ',', ' ') }} $,
+            lecture cache {{ (costs.price.cacheReadMicro / 1000000)|number_format(2, ',', ' ') }} $,
+            écriture cache {{ (costs.price.cacheWrite5mMicro / 1000000)|number_format(2, ',', ' ') }} $ par million de tokens.</p>
+    {% else %}
+        <p class="flash flash-error">Aucun tarif configuré pour {{ costs.model }} : les appels sont bloqués.</p>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h2>Par étape</h2>
+    <table class="table">
+        <thead><tr><th>Étape</th><th>Appels</th><th>Entrée</th><th>Sortie</th><th>Cache (lu / écrit)</th><th>Réel</th><th>Simulé</th></tr></thead>
+        <tbody>
+        {% for row in costs.byStep %}
+            <tr><td>{{ row.label }}</td><td>{{ row.count }}</td><td>{{ row.input|num }}</td><td>{{ row.output|num }}</td><td>{{ row.cacheRead|num }} / {{ row.cacheWrite|num }}</td><td>{{ row.real|usd }}</td><td class="muted">{{ row.simulated|usd }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="card">
+    <h2>Chaque appel</h2>
+    <div class="scroll">
+    <table class="table small">
+        <thead><tr><th>#</th><th>Date</th><th>Étape</th><th>Ch.</th><th>Fournisseur / modèle</th><th>Consignes</th><th>Tentative</th><th>Statut</th><th>Entrée</th><th>Sortie</th><th>Cache lu</th><th>Cache écrit</th><th>Plafond estimé</th><th>Coût constaté</th><th>Durée</th><th>Erreur</th></tr></thead>
+        <tbody>
+        {% for c in costs.calls|reverse %}
+            <tr class="{{ c.status.value != 'success' ? 'row-error' }}">
+                <td>{{ c.id }}</td>
+                <td>{{ c.startedAt|date('d/m H:i:s') }}</td>
+                <td>{{ c.step.label }}</td>
+                <td>{{ c.chapterNumber ?: '—' }}</td>
+                <td>{{ c.simulated ? 'Simulation' : c.provider }}<br><code>{{ c.responseModel ?: c.model }}</code></td>
+                <td><code>{{ c.promptVersion }}</code></td>
+                <td>{{ c.attempt }}</td>
+                <td>{{ c.status.label }}{% if c.stopReason %}<br><span class="muted">{{ c.stopReason }}</span>{% endif %}</td>
+                <td>{{ c.inputTokens|num }}</td>
+                <td>{{ c.outputTokens|num }} <span class="muted">/ {{ c.maxOutputTokens|num }}</span></td>
+                <td>{{ c.cacheReadInputTokens|num }}</td>
+                <td>{{ c.cacheCreationInputTokens|num }}</td>
+                <td class="muted">{{ c.ceilingPico|usd }}</td>
+                <td>{{ c.costPico|usd }}{% if c.simulated %} <span class="muted">(fictif)</span>{% endif %}</td>
+                <td>{{ c.durationMs|duration }}</td>
+                <td class="muted">{{ c.errorMessage ?: '—' }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+{% endblock %}

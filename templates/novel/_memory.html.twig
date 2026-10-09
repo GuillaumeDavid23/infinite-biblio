@@ -1,0 +1,21 @@
+<div class="memory grid-2">
+    {% if data.timeline is defined and data.timeline is not empty %}
+        <div><h3>Chronologie</h3><ul>{% for e in data.timeline %}<li>Ch. {{ e.chapter }} : {{ e.event }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    {% if data.locations is defined and data.locations is not empty %}
+        <div><h3>Lieux et déplacements</h3><ul>{% for l in data.locations %}<li><strong>{{ l.name }}</strong> : {{ l.note }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    {% if data.character_knowledge is defined and data.character_knowledge is not empty %}
+        <div><h3>Ce que savent les personnages</h3><ul>{% for k in data.character_knowledge %}<li><strong>{{ k.character }}</strong> : {{ k.knows|join(' ; ') }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    {% if data.relationships is defined and data.relationships is not empty %}
+        <div><h3>Relations</h3><ul>{% for r in data.relationships %}<li><strong>{{ r.between }}</strong> : {{ r.status }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    {% if data.objects is defined and data.objects is not empty %}
+        <div><h3>Objets importants</h3><ul>{% for o in data.objects %}<li><strong>{{ o.name }}</strong> ({{ o.holder }}) : {{ o.status }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    <div><h3>Intrigues</h3>
+        <p>Ouvertes :</p><ul>{% for t in data.open_threads|default([]) %}<li>{{ t }}</li>{% else %}<li class="muted">aucune</li>{% endfor %}</ul>
+        <p>Résolues :</p><ul>{% for t in data.resolved_threads|default([]) %}<li>{{ t }}</li>{% else %}<li class="muted">aucune</li>{% endfor %}</ul>
+    </div>
+</div>

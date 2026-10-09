@@ -1,0 +1,26 @@
+Étape : mise à jour de la mémoire narrative après le chapitre {{ chapterNumber }} (accepté par un humain).
+
+Mémoire actuelle :
+<memoire>
+{{ (previousMemory ?? {})|data }}
+</memoire>
+
+Personnages prévus :
+<plan_valide>
+{{ (characters ?? [])|data }}
+</plan_valide>
+
+Texte du chapitre {{ chapterNumber }} :
+<texte>
+{{ text }}
+</texte>
+
+Produis la mémoire complète mise à jour (pas seulement les changements) :
+- timeline : événements importants avec leur numéro de chapitre ;
+- locations : lieux et déplacements notables ;
+- character_knowledge : ce que chaque personnage sait désormais ;
+- relationships : relations entre personnages et leur évolution ;
+- objects : objets importants, qui les détient, leur état (perdu, cassé, caché…) ;
+- open_threads et resolved_threads : intrigues ouvertes et résolues.
+
+Conserve les faits antérieurs sauf s'ils ont explicitement changé dans ce chapitre. Reste factuel et concis. Réponds uniquement avec l'objet JSON demandé.
