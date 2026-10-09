@@ -1,0 +1,98 @@
+{% extends 'base.html.twig' %}
+{% block title %}Chapitre {{ chapter.number }} · {{ novel.title }}{% endblock %}
+{% block body %}
+<p class="crumbs"><a href="{{ path('novel_index') }}">Mes romans</a> › <a href="{{ path('novel_show', {id: novel.id}) }}">{{ novel.title }}</a> ›</p>
+<h1>Chapitre {{ chapter.number }} : {{ chapter.title }} <span class="badge chapter-{{ chapter.status.value }}">{{ chapter.status.label }}</span></h1>
+<p class="pager">
+    {% if previous %}<a href="{{ path('chapter_show', {id: novel.id, number: previous.number}) }}">← Chapitre {{ previous.number }}</a>{% endif %}
+    {% if next and next.currentVersion %}<a href="{{ path('chapter_show', {id: novel.id, number: next.number}) }}">Chapitre {{ next.number }} →</a>{% endif %}
+</p>
+
+{% if version is null %}
+    <p class="card">Ce chapitre n'est pas encore rédigé.</p>
+{% else %}
+<div class="chapter-layout">
+<article class="card reading">
+    {% if not isCurrent %}
+        <div class="flash flash-info">Vous lisez une ancienne version (v{{ version.number }}).
+            <a href="{{ path('chapter_show', {id: novel.id, number: chapter.number}) }}">Revenir à la version actuelle</a>.</div>
+    {% endif %}
+    {% if version.simulated %}<div class="flash flash-info small">Texte simulé : aucune valeur littéraire.</div>{% endif %}
+    <p class="muted small">Version {{ version.number }} · {{ version.source.label }} · {{ version.wordCount|num }} mots (cible ≈ {{ novel.targetWordsPerChapter }}) · {{ version.createdAt|date('d/m/Y H:i') }}</p>
+    {% if version.reason %}<p class="muted small">Motif : {{ version.reason|nl2br }}</p>{% endif %}
+    <div class="prose">{{ version.content|paragraphs }}</div>
+</article>
+
+<aside>
+    {% if isCurrent %}
+    <section class="card">
+        <h2>Décision</h2>
+        {% if activeJob %}
+            <p class="working"><span class="spinner"></span> Une étape est en cours ({{ activeJob.step.label|lower }}). <a href="{{ path('chapter_show', {id: novel.id, number: chapter.number}) }}">Actualiser</a></p>
+        {% endif %}
+        {% if chapter.status.value == 'to_review' %}
+            {% if not chapter.currentVersionReviewed %}<p class="muted small">Le contrôle de cohérence de cette version n'est pas encore fait.</p>{% endif %}
+            {{ include('_partials/action.html.twig', {url: path('chapter_accept', {id: novel.id, number: chapter.number}), label: 'Accepter ce chapitre', confirm: 'Accepter ce chapitre ? Il deviendra une référence pour la suite (mémoire narrative).'}) }}
+        {% elseif chapter.status.value == 'to_recheck' %}
+            <p>Un chapitre précédent a changé. Vérifiez que ce chapitre reste cohérent.</p>
+            {{ include('_partials/action.html.twig', {url: path('chapter_recheck', {id: novel.id, number: chapter.number}), label: 'Relancer le contrôle de cohérence'}) }}
+            {{ include('_partials/action.html.twig', {url: path('chapter_accept', {id: novel.id, number: chapter.number}), label: 'Confirmer sans changement', class: 'secondary'}) }}
+        {% elseif chapter.status.value == 'accepted' %}
+            <p>Chapitre accepté le {{ chapter.acceptedAt|date('d/m/Y H:i') }}. Une correction créera une nouvelle version à relire, et les chapitres suivants seront à revérifier.</p>
+        {% endif %}
+        <p><a class="button secondary small" href="{{ path('chapter_edit', {id: novel.id, number: chapter.number}) }}">Modifier le texte à la main</a></p>
+    </section>
+
+    <section class="card" data-controller="passage">
+        <h2>Corriger un passage avec l'IA</h2>
+        <form method="post" action="{{ path('chapter_correct', {id: novel.id, number: chapter.number}) }}" class="form" data-controller="confirm" data-confirm-message-value="Lancer la correction ? Elle crée une nouvelle version ; l'actuelle reste dans l'historique." data-action="submit->confirm#submit">
+            <input type="hidden" name="_token" value="{{ csrf_token('novel_action') }}">
+            <label>Passage à réécrire (copié exactement depuis le texte)
+                <textarea name="passage" rows="4" data-passage-target="field" required></textarea></label>
+            <button class="button ghost small" data-action="passage#useSelection">Utiliser le texte sélectionné</button>
+            <label>Motif de la correction
+                <textarea name="reason" rows="2" required placeholder="Ex. : Yann ne peut pas connaître ce secret à ce stade."></textarea></label>
+            <button type="submit" class="button">Corriger ce passage</button>
+        </form>
+    </section>
+    {% endif %}
+
+    <section class="card" id="alertes">
+        <h2>Alertes</h2>
+        <p class="muted small">Aide à la relecture, pas une garantie de qualité.</p>
+        {% for i in issues %}
+            <div class="issue sev-{{ i.severity.value }} {{ i.status.value != 'open' ? 'closed' }}">
+                <p><strong>{{ i.severity.label }}</strong> · {{ i.type.label }} · v{{ i.versionNumber }}{% if i.simulated %} · simulée{% endif %}{% if i.status.value != 'open' %} · {{ i.status.label }}{% endif %}</p>
+                <p>{{ i.description }}</p>
+                {% if i.excerpt %}<blockquote>{{ i.excerpt }}</blockquote>{% endif %}
+                {% if i.suggestion %}<p class="small"><em>Suggestion : {{ i.suggestion }}</em></p>{% endif %}
+                {% if i.status.value == 'open' %}
+                    {{ include('_partials/action.html.twig', {url: path('chapter_issue_status', {id: novel.id, number: chapter.number, issue: i.id}), label: 'Corrigée', class: 'small secondary', fields: {status: 'resolved'}}) }}
+                    {{ include('_partials/action.html.twig', {url: path('chapter_issue_status', {id: novel.id, number: chapter.number, issue: i.id}), label: 'Ignorer', class: 'small ghost', fields: {status: 'dismissed'}}) }}
+                {% endif %}
+            </div>
+        {% else %}
+            <p class="muted">Aucune alerte.</p>
+        {% endfor %}
+    </section>
+
+    <section class="card">
+        <h2>Historique des versions</h2>
+        <ul class="versions">
+        {% for v in chapter.versions|reverse %}
+            <li>
+                <a href="{{ path('chapter_show', {id: novel.id, number: chapter.number, version: v.number}) }}">v{{ v.number }}</a>
+                · {{ v.source.label }} · {{ v.wordCount|num }} mots · {{ v.createdAt|date('d/m H:i') }}
+                {% if v == chapter.currentVersion %}<strong>(actuelle)</strong>
+                {% else %}
+                    {{ include('_partials/action.html.twig', {url: path('chapter_restore', {id: novel.id, number: chapter.number, version: v.number}), label: 'Restaurer', class: 'small ghost', confirm: 'Restaurer la version ' ~ v.number ~ ' ? Elle sera recopiée comme nouvelle version.'}) }}
+                {% endif %}
+                {% if v.reason %}<br><span class="muted small">{{ v.reason|length > 120 ? v.reason|slice(0, 120) ~ '…' : v.reason }}</span>{% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+    </section>
+</aside>
+</div>
+{% endif %}
+{% endblock %}

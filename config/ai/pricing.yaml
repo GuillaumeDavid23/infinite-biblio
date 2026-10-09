@@ -1,0 +1,15 @@
+# Grille tarifaire datée, en dollars US par million de tokens (tarifs API Anthropic, hors taxes).
+#
+# - Ajouter une nouvelle ligne datée plutôt que modifier une ligne existante :
+#   chaque appel enregistre la référence « modèle@date » utilisée pour son coût.
+# - À VÉRIFIER sur https://platform.claude.com/docs/en/about-claude/pricing avant tout essai réel.
+# - Écriture en cache : 1,25 × le tarif d'entrée (durée 5 min) et 2 × (durée 1 h), règle publiée par Anthropic.
+prices:
+  - model: claude-sonnet-5-5
+    effective_from: '2026-10-06'
+    source: 'Documentation Anthropic (table des modèles), relevé du 2026-10-06'
+    input: '2.00'
+    output: '10.00'
+    cache_write_5m: '2.50'
+    cache_write_1h: '4.00'
+    cache_read: '0.20'

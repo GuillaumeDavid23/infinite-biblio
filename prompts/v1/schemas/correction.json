@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["revised_passage", "explanation"],
+  "properties": {
+    "revised_passage": {"type": "string"},
+    "explanation": {"type": "string"}
+  }
+}

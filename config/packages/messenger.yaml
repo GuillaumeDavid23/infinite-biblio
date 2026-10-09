@@ -1,0 +1,23 @@
+framework:
+    messenger:
+        failure_transport: failed
+
+        transports:
+            # Transport en base de données : pas d'infrastructure supplémentaire pour le prototype.
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: generation
+                # Les reprises sont gérées par l'application (tentatives journalisées et limitées).
+                retry_strategy:
+                    max_retries: 0
+            failed: 'doctrine://default?queue_name=failed'
+
+        routing:
+            App\Message\RunGenerationJob: async
+
+when@test:
+    framework:
+        messenger:
+            transports:
+                async: 'in-memory://'

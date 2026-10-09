@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier le chapitre {{ chapter.number }}{% endblock %}
+{% block body %}
+<p class="crumbs"><a href="{{ path('novel_show', {id: novel.id}) }}">{{ novel.title }}</a> › <a href="{{ path('chapter_show', {id: novel.id, number: chapter.number}) }}">Chapitre {{ chapter.number }}</a> ›</p>
+<h1>Modifier le chapitre {{ chapter.number }}</h1>
+<p class="lead">L'enregistrement crée une nouvelle version. La version actuelle (v{{ chapter.currentVersion.number }}) reste consultable et restaurable.</p>
+<form method="post" class="card form" data-controller="once" data-action="submit->once#submit">
+    <input type="hidden" name="_token" value="{{ csrf_token('novel_action') }}">
+    <label>Motif de la modification<input type="text" name="reason" placeholder="Ex. : resserrer le dialogue de la scène 2"></label>
+    <label>Texte (laissez une ligne vide entre les paragraphes)
+        <textarea name="content" rows="30" class="editor">{{ chapter.currentVersion.content }}</textarea></label>
+    <p><button type="submit" class="button">Enregistrer comme nouvelle version</button>
+       <a href="{{ path('chapter_show', {id: novel.id, number: chapter.number}) }}">Annuler</a></p>
+</form>
+{% endblock %}

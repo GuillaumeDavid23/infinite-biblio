@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["timeline", "locations", "character_knowledge", "relationships", "objects", "open_threads", "resolved_threads"],
+  "properties": {
+    "timeline": {
+      "type": "array",
+      "items": {"type": "object", "additionalProperties": false, "required": ["chapter", "event"], "properties": {"chapter": {"type": "integer"}, "event": {"type": "string"}}}
+    },
+    "locations": {
+      "type": "array",
+      "items": {"type": "object", "additionalProperties": false, "required": ["name", "note"], "properties": {"name": {"type": "string"}, "note": {"type": "string"}}}
+    },
+    "character_knowledge": {
+      "type": "array",
+      "items": {"type": "object", "additionalProperties": false, "required": ["character", "knows"], "properties": {"character": {"type": "string"}, "knows": {"type": "array", "items": {"type": "string"}}}}
+    },
+    "relationships": {
+      "type": "array",
+      "items": {"type": "object", "additionalProperties": false, "required": ["between", "status"], "properties": {"between": {"type": "string"}, "status": {"type": "string"}}}
+    },
+    "objects": {
+      "type": "array",
+      "items": {"type": "object", "additionalProperties": false, "required": ["name", "holder", "status"], "properties": {"name": {"type": "string"}, "holder": {"type": "string"}, "status": {"type": "string"}}}
+    },
+    "open_threads": {"type": "array", "items": {"type": "string"}},
+    "resolved_threads": {"type": "array", "items": {"type": "string"}}
+  }
+}

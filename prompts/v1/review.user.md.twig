@@ -1,0 +1,39 @@
+Étape : contrôle de cohérence du chapitre {{ chapter.number }}. Tu es relecteur : tu ne réécris pas le chapitre.
+
+Plan validé pour ce chapitre :
+<plan_valide>
+{{ {
+  'chapitre': chapter,
+  'personnages': plan.characters ?? [],
+  'regles_univers': plan.world_rules ?? [],
+  'guide_de_style': plan.style_guide ?? ''
+}|data }}
+</plan_valide>
+
+Préférences du lecteur :
+<demande_lecteur>
+{{ {'point_de_vue': brief.pointOfView ?? '', 'temps_narratif': brief.tense ?? '', 'a_eviter': brief.avoid ?? ''}|data }}
+</demande_lecteur>
+
+{% if memory %}
+Mémoire narrative avant ce chapitre :
+<memoire>
+{{ memory|data }}
+</memoire>
+{% endif %}
+
+Texte du chapitre :
+<texte>
+{{ text }}
+</texte>
+
+Signale uniquement les problèmes réels, chacun avec un court extrait exact du texte quand c'est possible :
+- contradiction avec la mémoire ou le plan (type « contradiction ») ;
+- répétitions marquées de mots, d'images ou de scènes (« repetition ») ;
+- écart au plan : objectif, événement ou révélation manquants ou anticipés (« plan_deviation ») ;
+- changement de point de vue ou de temps narratif (« point_of_view ») ;
+- problème de continuité : lieux, déplacements, objets, connaissances des personnages (« continuity ») ;
+- autre problème important (« other »).
+
+Gravité : « critical » si le problème casse l'histoire ou contredit un fait validé, « warning » s'il mérite une correction, « info » pour une simple remarque.
+Si tu ne trouves rien, renvoie une liste vide. Réponds uniquement avec l'objet JSON demandé.
